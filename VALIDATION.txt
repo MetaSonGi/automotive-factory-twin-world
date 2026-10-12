@@ -1,0 +1,9 @@
+PASS production drains and vehicle conservation
+PASS stopped station blocks upstream with bounded buffers
+PASS resume drains stopped line
+PASS invalid settings
+PASS invalid timestep
+PASS synthetic telemetry and one sample per second
+PASS deterministic repeat
+PASS four GLB containers valid
+8 checks passed

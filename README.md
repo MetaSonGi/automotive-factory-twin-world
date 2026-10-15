@@ -1,6 +1,6 @@
 # 자동차 스마트팩토리 디지털트윈 월드 (확장판)
 
-Three.js 기반 자동차 공장 공정 시뮬레이션. 입고 → 차체 용접 → 도장 → 최종 조립 → 품질 검사 → 출하의 6스테이션을 차량이 흘러가며, 6축 로봇팔·휴머노이드·AMR이 함께 움직이는 라이브 디지털트윈 데모.
+Three.js 기반 멀티 팩토리 공정 시뮬레이션. 자동차·배터리·반도체·물류 4개 공장을 전환하며, 6스테이션 공정 흐름·6축 로봇팔·휴머노이드·AMR이 함께 움직이는 라이브 디지털트윈 데모.
 
 ## 웹
 
@@ -14,10 +14,25 @@ Three.js 기반 자동차 공장 공정 시뮬레이션. 입고 → 차체 용�
 ```bash
 python -m http.server 8000
 # http://localhost:8000 열기
-node test.mjs   # 시뮬레이션 로직 테스트 (13개 검사)
+node test.mjs   # 시뮬레이션 로직 + 공장 설정 테스트 (16개 검사)
 ```
 
 `file://`로 직접 열면 모듈/GLB 로딩이 제한되므로 HTTP 서버 사용.
+
+## 멀티 팩토리 (2026-10-15 확장)
+
+좌측 패널 최상단의 **공장 선택**으로 4개 공장을 전환. 전환 시 씬·시뮬레이션·UI(스테이지명·단위·카메라·정지 옵션)가 함께 리셋되며, 한 번에 하나의 공장만 로드됩니다.
+
+| 공장 | 공정 (6스테이션) | 단위 | 특징 설비 |
+|---|---|---|---|
+| 자동차 | 입고 → 차체 용접 → 도장 → 최종 조립 → 품질 검사 → 출하 | 대 | 도장 부스, 검사 게이트, 안전 펜스, 부품 랙 |
+| 배터리 | 원료 입고 → 전극 공정 → 조립 → 전해액 주입 → 화성 → 검사·출하 | 셀 | 전극 롤, 와인딩 머신(회전 드럼), 전해액 주입 갠트리, 화성 랙(충전 LED 점멸), 클린룸 파티션 |
+| 반도체 | 웨이퍼 입고 → 노광 → 식각 → 증착 → CMP·세정 → 검사·출하 | 장 | 노광기(옐로우룸), 식각/증착 챔버, FOUP 스태커, 천장 OHT 호이스트(이동), 소형 이송 로봇팔 |
+| 물류 | 입고 → 검수 → 보관 → 피킹 → 포장 → 출하 | 박스 | 고층 랙 행렬, 소터 분기 컨베이어, 도크 도어+트럭, 포장대, 지게차형 AMR |
+
+- `js/factories/` 모듈 구조: 각 공장은 `{id, name, unit, stages, theme, robots, amr, humans, buildStatic, makeItem}` export. `world.js`는 전환 시 공장 그룹을 제거·리소스 정리 후 선택된 공장의 `buildWorld` 격인 `buildStatic`을 호출해 재구성합니다.
+- `FactorySimulation`은 `stages`를 주입받아 동작 (기본값=자동차 6스테이지, 기존 테스트 호환).
+- Tripo GLB 교체·CSV 내보내기·카메라 프리셋·고장 시나리오는 공장 전환 후에도 동작 (기본 GLB는 공장별로 다름 — 자동차만 car.glb 자동 적용).
 
 ## 구현 내용 (2026-10-14 확장)
 
@@ -61,12 +76,13 @@ node test.mjs   # 시뮬레이션 로직 테스트 (13개 검사)
 ## 파일 구조
 
 ```
-index.html        UI 패널 + KPI 대시보드
+index.html        UI 패널 + KPI 대시보드 (공장 선택 셀렉터)
 style.css         다크 인더스트리얼 테마 (반응형)
-world.js          3D 월드·렌더 루프·UI 배선
-robot-arm.js      6축 로봇팔 절차적 모델 (신규)
-simulation.js     공정 시뮬레이션 헤드리스 로직 (고장 엔진·KPI 확장)
-test.mjs          13개 검사 (기존 8 + 확장 5)
+world.js          멀티 팩토리 오케스트레이터 (공장 전환·렌더 루프·UI 배선)
+robot-arm.js      6축 로봇팔 절차적 모델
+simulation.js     공정 시뮬레이션 헤드리스 로직 (stages 주입·고장 엔진·KPI)
+test.mjs          16개 검사 (기존 13 + 팩토리 3)
+js/factories/     공장별 설정 모듈 (common.js 공용 헬퍼 + automotive/battery/semiconductor/logistics.js + index.js)
 mirror/           2026-10-12 원본 스냅샷 (리뷰용, 푸시 제외)
 three.module.js / GLTFLoader.js / three.core.js   Three.js 0.180.0 로컬 동봉
 car.glb / robot.glb / humanoid.glb / amr.glb      직접 작성한 절차적 기본 자산 (Tripo 아님)
@@ -76,8 +92,10 @@ car.glb / robot.glb / humanoid.glb / amr.glb      직접 작성한 절차적 기
 웹 UI의 "Tripo 모델 교체"에서 GLB 업로드 시 현재 세션에 적용. 차량은 '완성차' variant만 교체되어 차체→완성차 전환이 유지됨. 산업용 로봇을 단일 GLB로 교체하면 관절 애니메이션이 없는 강체 외형이 됨 (관절 유지 시 부품별 리깅 필요 — TRIPO-ASSETS.md 참조).
 
 ## 검증·한계
-- `node --check` 전 JS 파일 통과, `node test.mjs` 13개 검사 통과
+- `node --check` 전 JS 파일 통과, `node test.mjs` 16개 검사 통과
 - 시뮬레이션은 결정적·헤드리스 로직으로 테스트됨 (기존 테스트 전부 보존)
+- 공장 모듈은 실제 THREE(r180)로 headless 스모크 테스트됨 (buildStatic/makeItem/애니메이션 콜백, 4공장 × 전환)
+- world.js 오케스트레이터는 DOM 스텁 + FakeRenderer로 headless 통합 테스트됨 (공장 전환·리셋·600프레임 시뮬레이션·이벤트 로그)
 - 온도·전류는 시각화용 가상 센서 파형. 실제 제조·실장비 제어·물리 충돌·역기구학·안전 동선 검증은 포함하지 않음
 - Three.js MIT 고지: THREE-LICENSE.txt
 

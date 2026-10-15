@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';import {FactorySimulation} from './simulation.js';import fs from 'node:fs';
+import {FACTORIES,FACTORY_MAP} from './js/factories/index.js';
 let count=0;const check=(name,f)=>{f();console.log('PASS',name);count++};
 // --- 기존 검증 (동작 보존) ---
 check('production drains and vehicle conservation',()=>{let s=new FactorySimulation({cycle:1,arrival:1,target:10});for(let i=0;i<4000;i++){s.step(.1);assert.equal(s.created,s.shipped+s.cars.length)}assert.equal(s.shipped,10)});
@@ -39,5 +40,42 @@ check('kpi getters',()=>{
  for(let i=0;i<2000;i++)s.step(.1);
  assert.equal(s.shipped,4);assert(s.throughputPerHour>0);assert(s.avgFlowTime>0);
  assert(s.availability<=1&&s.availability>=0);
+});
+// --- 멀티 팩토리 검증 ---
+check('four factory configs valid',()=>{
+ assert.equal(FACTORIES.length,4);
+ const ids=new Set();
+ for(const f of FACTORIES){
+  assert(f.id&&typeof f.id==='string'&&!ids.has(f.id));ids.add(f.id);
+  assert(f.name&&f.unit&&f.itemPrefix&&f.title&&f.enName&&f.desc&&f.blurb&&f.followBtn&&f.robotLabel);
+  assert(Array.isArray(f.stages)&&f.stages.length===6);
+  for(const s of f.stages){assert(s.key&&s.label&&Number.isFinite(s.cycle)&&s.cycle>0);}
+  assert(f.theme&&f.theme.bg&&f.theme.floor&&f.theme.padA&&f.theme.padB&&f.theme.accent);
+  assert(Array.isArray(f.stationXs)&&f.stationXs.length===6);
+  assert(Array.isArray(f.robots.stages)&&f.robots.stages.length>=1&&Number.isInteger(f.robots.defaultCount));
+  assert(f.robots.stages.every(s=>s>=1&&s<=4));
+  assert(Number.isInteger(f.amr.count)&&f.amr.rect);
+  assert(Array.isArray(f.humans)&&f.humans.length>=1);
+  assert(Number.isFinite(f.itemY)&&Number.isInteger(f.itemThreshold));
+  assert(typeof f.buildStatic==='function'&&typeof f.makeItem==='function');
+  assert(FACTORY_MAP[f.id]===f);
+ }
+});
+check('simulation accepts injected stages',()=>{
+ const labels=['a','b','c','d','e','f'];
+ const s=new FactorySimulation({stages:labels.map(l=>({key:l,label:l,cycle:5}))});
+ assert.equal(s.stageCount,6);
+ assert.deepEqual(s.stageLabels,labels);
+ assert.deepEqual(s.queues,[0,0,0,0,0,0]);
+ s.manualStop(5);assert.equal(s.stopped,5);
+ assert.throws(()=>s.manualStop(6));
+ assert.throws(()=>new FactorySimulation({stages:['only-one']}));
+ assert.throws(()=>new FactorySimulation({stages:[{key:'x'}]}));
+});
+check('injected stages simulate end to end',()=>{
+ const s=new FactorySimulation({cycle:1,arrival:1,target:6,stages:['s0','s1','s2','s3','s4','s5']});
+ for(let i=0;i<4000;i++)s.step(.1);
+ assert.equal(s.shipped,6);
+ assert.equal(s.created,s.shipped+s.cars.length);
 });
 console.log(count+' checks passed');

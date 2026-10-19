@@ -101,3 +101,8 @@ car.glb / robot.glb / humanoid.glb / amr.glb      직접 작성한 절차적 기
 
 ## 라이선스
 MIT (LICENSE)
+
+## 외부 3D 에셋 출처 (CC-BY 3.0)
+- `car.glb` (완성차): Quaternius, CC-BY 3.0 — https://poly.pizza/m/unqqkULtRU
+- `forklift.glb` (물류창고 지게차): KolosStudios, CC-BY 3.0 — https://poly.pizza/m/DTQBuenKJY
+- `amr.glb`, `humanoid.glb`, `robot.glb`: 직접 작성한 절차적 모델 (MIT)

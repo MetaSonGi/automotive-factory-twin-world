@@ -33,7 +33,7 @@ export default {
   ],
   itemY:.95,
   itemThreshold:2,   // stage<=2: 파렛트 박스, 이후: 포장 박스(라벨)
-  glb:{amr:'./amr.glb',humanoid:'./humanoid.glb'},
+  glb:{amr:'./forklift.glb',humanoid:'./humanoid.glb'},
   followBtn:'박스 추적',
   desc:'입고 → 검수 → 보관 → 피킹 → 포장 → 출하',
   blurb:'고층 랙 행렬·소터 분기 컨베이어·도크 도어·포장대로 구성된 물류센터. 지게차형 AMR이 박스를 나르며, 로봇 이동은 시각적 데모입니다.',

@@ -64,7 +64,7 @@ function buildRobots(n){
   const count=counts[si]||0,cx=F.xs[stage];
   for(let i=0;i<count;i++,idx++){
    const x=cx+(i-(count-1)/2)*3.4;
-   const z=(i%2===0)?-3.8:3.8;
+   const z=(i%2===0)?-2.6:2.6;   // 차체에 닿을 거리 (용접점이 차체 측면에 닿도록)
    const arm=createRobotArm();
    arm.root.position.set(x,0,z);
    arm.root.scale.setScalar(F.def.robots.scale||1);

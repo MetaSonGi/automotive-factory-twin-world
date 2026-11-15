@@ -412,8 +412,35 @@ function updateUI(){
 
 // ---------- 메인 루프 ----------
 let last=0,ui=0;
+
+// ---------- 적응형 렌더 품질 ----------
+// 2초 창의 평균 프레임 시간이 50ms(20fps)를 넘으면 한 단계씩 낮춤:
+// 1단계 = 픽셀비 1 + 그림자맵 1024, 2단계 = 그림자 끔.
+let quality=0,qStart=0,qAcc=0,qN=0;
+function adaptQuality(ts,frameMs){
+ if(quality>=2||document.hidden||frameMs<=0||frameMs>1000)return; // 탭 복귀·공장 로드 스파이크 제외
+ if(!qN)qStart=ts;
+ qAcc+=frameMs;qN++;
+ if(ts-qStart<2000||qN<3)return;
+ const avg=qAcc/qN;qAcc=0;qN=0;
+ if(avg<50)return;
+ quality++;
+ if(quality===1){
+  renderer.setPixelRatio(1);
+  sun.shadow.mapSize.set(1024,1024);
+  if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}
+ }else{
+  renderer.shadowMap.enabled=false;
+ }
+ console.info(`[render] 평균 ${avg.toFixed(0)}ms/frame → 품질 단계 ${quality}`);
+}
+
 function frame(ts){
- const dt=Math.min(.1,(ts-last)/1000||0);last=ts;
+ const frameMs=last?ts-last:0;
+ adaptQuality(ts,frameMs);
+ // 시뮬레이션은 아래에서 0.1s 단위로 분할 스텝하므로, 저사양(저fps) 기기에서도
+ // 실제 경과 시간을 그대로 반영. 1s 상한은 탭 복귀 등 비정상 스파이크 방지용.
+ const dt=Math.min(1,frameMs/1000||0);last=ts;
  if(!paused){
   let rem=dt*speed;
   while(rem>0){const s=Math.min(.1,rem);sim.step(s);rem-=s;}
@@ -438,8 +465,9 @@ function frame(ts){
  // 공장별 특수 애니메이션 (와인딩 드럼, 화성 LED, OHT 호이스트 등)
  for(const fn of F.animated)fn(sim.time,dSim);
 
- updateAMRs(dSim);
- updateHumans(dSim);
+ // 저fps에서 dSim이 커도 센서 감속·웨이포인트 판정이 건너뛰지 않도록 0.25s 단위로 분할
+ const moveSteps=Math.max(1,Math.ceil(dSim/0.25));
+ for(let k=0;k<moveSteps;k++){updateAMRs(dSim/moveSteps);updateHumans(dSim/moveSteps);}
 
  // 아이템 추적 카메라
  if(followCar&&sim.cars.length){
